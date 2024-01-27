@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "homecooked"
+version = "0.1.0"
+description = "homecooked ASGI web server"
+authors = ["v0rtex"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+uvicorn = "^0.25.0"
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.12.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

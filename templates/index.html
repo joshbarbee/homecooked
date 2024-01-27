@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Home</title>
+</head>
+<body>
+<h1>Home</h1>
+    <p> {{name }} </p>
+    <input id = 'test'> {{name}} </input>
+<script>
+    var test = document.getElementById('test');
+    test.addEventListener('click', function(){
+        fetch('/test', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name: 'test'
+            })
+        }).then(function(response){
+            return response.json();
+        }).then(function(data){
+            console.log(data);
+        });
+    });
+</script>
+</body>
+</html>
