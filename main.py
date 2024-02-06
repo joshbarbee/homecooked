@@ -1,26 +1,18 @@
-from homecooked import App, router, Response, JSONResponse, TemplateResponse, Middleware
+from homecooked import App, Response
 
 app = App()
 
-class MyWare(Middleware):
-    async def preware(self, request):
-        print('preware')
-        return request
+@app.get("/")
+async def index():
+    return Response("Hello World!")
 
-    async def postware(self, request, response):
-        print('postware')
-        return response
-
-MyWare(app)
-
-@router.get('/')
+@app.get("/test")
 async def test(request):
-    print(request.params)
-    return TemplateResponse('index.html', {'name': 'Mike'})
+    if 'a' not in request.query:
+        return Response("a not in query", 500)
+    
+    return Response("a in query")
 
-
-@router.route('/test', methods=['POST'])
-async def test(request):
-    print(await request.json())
-    return JSONResponse({'status': 'ok'})
-
+@app.error(500)
+async def error():
+    return Response("Server Error!!", 500)

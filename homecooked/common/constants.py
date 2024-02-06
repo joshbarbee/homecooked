@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class HTTPMethods(Enum):
     GET = "GET"
     POST = "POST"
@@ -7,5 +8,6 @@ class HTTPMethods(Enum):
     DELETE = "DELETE"
     PATCH = "PATCH"
     HEAD = "HEAD"
+
 
 HTTP_VERSION: str = "HTTP/1.1"
