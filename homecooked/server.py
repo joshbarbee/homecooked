@@ -1,11 +1,13 @@
 from homecooked.router import Router
+from homecooked.exceptions import HTTPException, ExceptionHandler, NotFound
 
 class App:
     def __init__(self) -> None:
         self.router = Router()
         self.router.add_route("/", self.index)
         self.router.add_route("/about", self.about)
-        self.router.add_route("/{abc:int}", self.contact)
+        self.router.add_route("/{abc:int}/{def:str}", self.contact)
+        self.exception_handler = ExceptionHandler()
 
     async def index(self, request):
         return "Hello, World!"
@@ -29,6 +31,20 @@ class App:
         assert scope['type'] == 'http'
 
         body = await self.read_body(receive)
+
+        route, params = self.router.get_route(scope['path'])
+
+        if route is None:
+            handler = self.exception_handler.handle_exception(NotFound())
+            body = handler()
+        else:
+            try:
+                body = await route.handler(params, body)
+            except HTTPException as e:
+                self.exception_handler.handle_exception(e)
+
+        body = str(body).encode('utf-8')
+
         await send({
             'type': 'http.response.start',
             'status': 200,
