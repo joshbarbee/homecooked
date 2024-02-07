@@ -1,4 +1,5 @@
 from typing import Callable
+from homecooked.exceptions.defaults import *
 
 class HTTPException(Exception):
     code : int = -1
@@ -43,12 +44,20 @@ class NotImplemented(HTTPException):
     code = 501
     message = "Not Implemented"
 
-class ExceptionHandler():
-    def default_handler(self, e : HTTPException) -> Callable:
-        return lambda: (e.code, e.message)
 
+class ExceptionHandler():
     def __init__(self) -> None:
-        self.handlers = {}
+        self.handlers = { 
+            BadRequest.code: bad_request_handler,
+            Unauthorized.code: unauthorized_handler,
+            Forbidden.code: forbidden_handler,
+            NotFound.code: not_found_handler,
+            MethodNotAllowed.code: method_not_allowed_handler,
+            NotAcceptable.code: not_acceptable_handler,
+            RequestTimeout.code: request_timeout_handler,
+            ServerError.code: server_error_handler,
+            NotImplemented.code: not_implemented_handler
+        }
 
     def add_handler(self, code : int | HTTPException, handler : Callable) -> None:
         if isinstance(code, HTTPException):
@@ -56,5 +65,8 @@ class ExceptionHandler():
 
         self.handlers[code] = handler
 
-    def handle_exception(self, e : HTTPException) -> Callable:
-        return self.handlers.get(e.code, self.default_handler(e))
+    def get_handler(self, code : int | HTTPException) -> Callable:
+        if isinstance(code, HTTPException):
+            code = code.code
+
+        return self.handlers.get(code)
