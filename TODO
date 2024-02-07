@@ -1,3 +1,8 @@
 - template - done
 - class-based middleware - done
 - plugins
+
+- getting files from upload
+- better response? pydantic? auto-supply arguments?
+    - auto supply arguments done
+- blueprints - kinda done?

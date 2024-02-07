@@ -42,8 +42,8 @@ for variables in dynamic paths is `{variable_name:type}`.
         return Response("Admin Page")
 
     @app.get("/user/{user_id:int}")
-    async def user(request):
-        return Response(f"User ID: {request.params.get('user_id')}")
+    async def user(user_id : int):
+        return Response(f"User ID: {user_id}")
 
 Dynamic paths will always match after static paths. For example, if the URL `/user/1` is a
 static route, and `/user/{user_id:int}` is a dynamic route, if the path is `/user/1`, the
@@ -53,36 +53,29 @@ the static directory (typically `static/`).
 By default, types supported for dynamic paths are `int`, `float`, `str`, and `path`. 
 Support for custom types is enabled via the [Converter-Engine](#converter-target)
 
-## Parsing Request Information
+Each variable in a dynamic path is passed to the handler after converting. Optionally, if a parameter in a handler has the `Request` type then the variable corresponding to the `Request` type will be set to the current request.
 
-When a handler is invoked, we can access information from the current request via the passed `Request` object. 
-- Path parameters are stored as a dictionary between a path variable and value, accessed via `request.params`. For example, `request.params.get('user_id')`
+## Parsing Request Information
+In dynamic routes, we access path parameters through the handler arguments. However, this is not the only way to access information about the current request.
+
+When a handler is invoked, we can access information from the current request via the optionally-passed `Request` object. 
+- Besides being passed as handler arguemnts, path parameters are stored as a dictionary between a path variable and value, accessed via `request.params`. For example, `request.params.get('user_id')`
 - Query parameters are accessed via `request.query`. Like path parameters, query parameters are stored as a dictionary, but keys and values are both strings. If multiple parameters are passed with the same key, the value becomes an array of all values with the same key.
 - Request body can be accessed via `request.body`. In this form, the request body is raw text. Request bodies can be parsed via JSON through invoking the `.json` function on a request object (e.g. `data = await request.json()`)
 
 
 ## HTTP Methods
 
-When connecting a handler to a path, you must specifiy the HTTP method for the specific
-handler. A particular path can have multiple handlers, but a handler can only have one
-method. Supported methods in Homecooked are:
-- GET
-- POST
-- PUT
-- DELETE
-- PATCH
-- HEAD
-- OPTIONS
+When connecting a handler to a path, you either use one of the specified app.METHOD functions:
+- GET: `app.get`
+- POST: `app.post`
+- PUT: `app.put`
+- DELETE: `app.delete`
+- PATCH: `app.patch`
+- HEAD: `app.head`
+- OPTIONS: `app.options`
 
-As such, to support multiple methods, multiple handlers should be used, such as the following:
-
-    @app.get("/user/{user_id:int}")  
-    async def admin(request):
-        return Response("GET endpoint for a particular user")
-
-    @app.post("/user/{user_id:int}")
-    async def user(request, user_id):
-        return Response(f"User ID: {request.params.get('user_id')}")
+Additionally, if you want to support multiple methods with one handler, use `app.route(path, methods)` with a list of methods. If no methods are provided, `app.route` will only allow GET requests for the specified handler.
 
 Homecooked automatically supports the `HEAD` HTTP method for all resources that `GET` is enabled for.
 

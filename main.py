@@ -1,27 +1,25 @@
-from homecooked import App, Response, Request, JSONResponse, exceptions, TemplateResponse
+from homecooked import App, Response, Request, exceptions
 import time
-from homecooked.middleware import Middleware
+from other import sr
 
-app = App()    
-Middleware(app, '/json')
+app = App()
 
-@app.get('/')
-async def home(request : Request):
-    return TemplateResponse('index.html', {"name": "world"})
+app.add_subrouter('/other', sr)
 
-@app.get('/json/test')
-async def json(request : Request):
-    return JSONResponse({"hello": "world"})
+@app.route('/')
+async def home(bacon : Request):
+    return Response("Hello from home route")
 
-@app.middleware()
+@app.route('/{name:str}')
+async def variable(name : str):
+    if len(name) > 10:
+        raise exceptions.BadRequest
+
+    return Response(f"Hello {name} from json route")
+
+@app.middleware('/')
 async def middleware(request : Request, next):
     start = time.time()
     response = await next(request)
-    print(f"Request took {time.time() - start} seconds")
+    print(f"Time taken: {time.time() - start}")
     return response
-
-@app.middleware('/json')
-async def json_middleware(request : Request, next):
-    print("json middleware, only applied on /json route")
-    return await next(request)
-

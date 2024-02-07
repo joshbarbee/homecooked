@@ -1,4 +1,4 @@
-from homecooked.router import Router, PathTypes
+from homecooked.router import Router, PathTypes, SubRouter
 from homecooked.exceptions.exceptions import (
     HTTPException, 
     ExceptionHandler, 
@@ -64,6 +64,30 @@ class App:
     def add_path(self, path, handler, method):
         self.router.add_path(path, handler, method)
 
+    def add_subrouter(self, path : str, subrouter : SubRouter):
+        path = path.rstrip("/").lstrip("/")
+        for sr_path, handler, method in subrouter.paths:
+            joined_path = f"{path}/{sr_path.rstrip("/").lstrip("/")}"
+            self.router.add_path(joined_path, handler, method)
+        
+        for sr_path, middleware in subrouter.middlewares:
+            joined_path = f"{path}/{sr_path.rstrip("/").lstrip("/")}"
+            self.router.add_middleware(middleware, sr_path)
+
+    def route(self, path, methods = None):
+        if methods is None:
+            methods = [HTTPMethods.GET]
+        elif not isinstance(methods, list):
+            methods = [methods]
+
+        def decorator(handler):
+            for method in methods:
+                if isinstance(method, str):
+                    method = HTTPMethods(method.upper())
+                self.add_path(path, handler, method)
+            return handler
+        return decorator
+
     def get(self, path):
         def decorator(handler):
             self.add_path(path, handler, HTTPMethods.GET)
@@ -105,3 +129,5 @@ class App:
             self.router.add_middleware(handler, path)
             return handler
         return decorator
+
+    

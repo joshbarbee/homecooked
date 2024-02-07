@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 import os
 from mimetypes import guess_type
 from enum import Enum
+import inspect
 
 from homecooked.constants import HTTPMethods
 from homecooked.request import Request
@@ -83,6 +84,10 @@ class Path():
         self.params : Dict[str, Any] = {}
         self.dynamic = dynamic
 
+        anno_dict = inspect.get_annotations(handler)
+        anno_types = {v: k for k, v in anno_dict.items()}
+        self.request_var = anno_types.get(Request, None)
+
         if self.dynamic:
             self.path, self.params = ConverterEngine.format_path(path)
 
@@ -124,8 +129,13 @@ class MiddlewareStack(list):
         super().__init__(*args, **kwds)
 
     async def __call__(self, request : Request) -> Response:
-        if len(self) == 1: # we are calling the actual function
-            return await self.pop(0).handler(request)
+        if len(self) == 1: # we are calling the actual handler
+            path = self[0]
+            params = request.params
+            if path.request_var is not None:
+                params[path.request_var] = request
+                return await path.handler(**params)
+            return await path.handler(**params)
 
         return await self.pop(0).handler(request, self)
 
@@ -197,4 +207,76 @@ class Router():
                 invalid_method = True
             
         return PathTypes.NOMETHOD if invalid_method else PathTypes.NOPATH, None, None
+    
+class SubRouter():
+    def __init__(self) -> None:
+        self.paths : List[Tuple[str, Callable, HTTPMethods]] = []
+        self.middlewares : List[Tuple[str, Callable]] = []
+
+    def add_subrouter(self, path : str, subrouter : 'SubRouter') -> None:
+        path = path.rstrip("/").lstrip("/")
+        for sr_path, handler, method in subrouter.paths:
+            joined_path = f"{path}/{sr_path.rstrip('/').lstrip('/')}"
+            self.paths.append((joined_path, handler, method))
         
+        for sr_path, middleware in subrouter.middlewares:
+            joined_path = f"{path}/{sr_path.rstrip('/').lstrip('/')}"
+            self.middlewares.append((joined_path, middleware))
+
+    def route(self, path, methods = None):
+        if methods is None:
+            methods = [HTTPMethods.GET]
+        elif not isinstance(methods, list):
+            methods = [methods]
+
+        def decorator(handler):
+            for method in methods:
+                if isinstance(method, str):
+                    method = HTTPMethods(method.upper())
+                self.paths.append((path, handler, method))
+            return handler
+        return decorator
+
+    def get(self, path):
+        def decorator(handler):
+            self.paths.append((path, handler, HTTPMethods.GET))
+            return handler
+        return decorator
+    
+    def post(self, path):
+        def decorator(handler):
+            self.paths.append((path, handler, HTTPMethods.POST))
+            return handler
+        return decorator
+    
+    def put(self, path):
+        def decorator(handler):
+            self.paths.append((path, handler, HTTPMethods.PUT))
+            return handler
+        return decorator
+
+    def delete(self, path):
+        def decorator(handler):
+            self.paths.append((path, handler, HTTPMethods.DELETE))
+            return handler
+        return decorator    
+    
+    def patch(self, path):
+        def decorator(handler):
+            self.paths.append((path, handler, HTTPMethods.PATCH))
+            return handler
+        return decorator
+    
+    def head(self, path):
+        def decorator(handler):
+            self.paths.append((path, handler, HTTPMethods.HEAD))
+            return handler
+        return decorator
+    
+    def middleware(self, path = ''):
+        def decorator(handler):
+            self.middlewares.append((path, handler))
+            return handler
+        return decorator
+        
+    
