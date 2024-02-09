@@ -2,7 +2,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape, TemplateNot
 import os
 
 class TemplateManager:
-    def __init__(self, template_dir = 'templates') -> None:
+    def __init__(self, template_dir) -> None:
         path = os.path.join(os.getcwd(), template_dir)
         loader = FileSystemLoader(path)
         self.env = Environment(

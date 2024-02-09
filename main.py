@@ -1,21 +1,30 @@
-from homecooked import App, Response, Request, exceptions
+from homecooked.basemodel import BaseModel
+from homecooked import App, Request, Response, TemplateResponse
 import time
-from other import sr
+
+class TestData(BaseModel):
+    data : str = 10
+    age : int
+    status: bool = False
+
+    def __init__(self, data) -> None:
+        super().__init__(data, strict = False)
+
+data = {
+    "data": "Hello",
+    "age": 20,
+    "status": True,
+}
 
 app = App()
 
-app.add_subrouter('/other', sr)
-
 @app.route('/')
 async def home(bacon : Request):
-    return Response("Hello from home route")
+    return TemplateResponse("index.html", {})
 
-@app.route('/{name:str}')
-async def variable(name : str):
-    if len(name) > 10:
-        raise exceptions.BadRequest
-
-    return Response(f"Hello {name} from json route")
+@app.post('/data')
+async def data_route(data : TestData):
+    return Response(f"Hello from data route {data.data}")
 
 @app.middleware('/')
 async def middleware(request : Request, next):

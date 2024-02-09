@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from homecooked.constants import HTTPMethods
 from homecooked.utils import parse_headers, parse_query
+from homecooked.basemodel import BaseModel
 from typing import Dict, Any
 import json
 
@@ -17,6 +18,7 @@ class Request:
     query: Dict[str, str]
     params: Dict[str, Any]
     body: str
+    model: BaseModel = None
 
     def __init__(self, scope, body: bytes) -> None:
         self.server_ip = scope["server"][0]
@@ -29,9 +31,15 @@ class Request:
         self.query = parse_query(scope["query_string"])
         self.params = {}
         self.body = body.decode("utf-8")
+        self._json = None
 
     async def json(self):
+        if self._json is not None:
+            return self._json
+
         try:
-            return json.loads(self.body)
+            self._json = json.loads(self.body)
+            return self._json
         except:
-            return "{}"
+            self._json = "{}"
+            return self._json

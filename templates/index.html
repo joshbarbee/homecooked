@@ -7,17 +7,26 @@
 <body>
 <h1>Home</h1>
     <p> {{name }} </p>
-    <input id = 'test'> {{name}} </input>
+    <input id = 'data'> </input>
+    <input id = 'age'> </input>
+    <input id = 'status'> </input>
+    <button id = 'submit'>Submit</button>   
 <script>
-    var test = document.getElementById('test');
+    var test = document.getElementById('submit');
     test.addEventListener('click', function(){
-        fetch('/json', {
+        let data = document.getElementById('data').value;
+        let age = document.getElementById('age').value;
+        let status = document.getElementById('status').value;
+
+        fetch('/data', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                name: 'test'
+                data: data,
+                age: age,
+                status: status
             })
         }).then(function(response){
             return response.json();

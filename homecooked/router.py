@@ -9,6 +9,7 @@ import inspect
 from homecooked.constants import HTTPMethods
 from homecooked.request import Request
 from homecooked.response import Response
+from homecooked.basemodel import BaseModel
 
 class Converter(ABC):
     regex = None
@@ -77,16 +78,18 @@ class ConverterEngine():
         return cls.converters[name].convert(value)
 
 class Path():
-    def __init__(self, path : str, handler : Callable, method : HTTPMethods, dynamic = False):
+    def __init__(self, path : str, handler : Callable, method : HTTPMethods, dynamic = False, model : BaseModel = None) -> None:
         self.path : str = path
         self.handler : Callable = handler
         self.method : HTTPMethods = method
+        self.model : BaseModel = model
         self.params : Dict[str, Any] = {}
         self.dynamic = dynamic
 
         anno_dict = inspect.get_annotations(handler)
         anno_types = {v: k for k, v in anno_dict.items()}
         self.request_var = anno_types.get(Request, None)
+        self.model_var = anno_types.get(self.model, None)
 
         if self.dynamic:
             self.path, self.params = ConverterEngine.format_path(path)
@@ -134,6 +137,9 @@ class MiddlewareStack(list):
             params = request.params
             if path.request_var is not None:
                 params[path.request_var] = request
+            if path.model_var is not None:
+                params[path.model_var] = request.model
+                    
                 return await path.handler(**params)
             return await path.handler(**params)
 
@@ -147,7 +153,7 @@ class PathTypes(Enum):
     NOMETHOD = "NOMETHOD"
 
 class Router():
-    def __init__(self, static_folder = 'static'):
+    def __init__(self, static_folder):
         self.static_paths : List[Path] = []
         self.dynamic_paths : List[Path] = []
         self.static_files : List[Path] = []
@@ -171,19 +177,19 @@ class Router():
         path = os.path.join(os.getcwd(), self.static_folder, path)
         return guess_type(path), open(path, "rb").read()
 
-    def add_path(self, path : str, handler : callable, method : HTTPMethods) -> None:
+    def add_path(self, path : str, handler : callable, method : HTTPMethods, model : BaseModel) -> None:
         path = path.rstrip("/").lstrip("/")
 
         if "{" in path and "}" in path:
-            self.add_dynamic_path(path, handler, method)
+            self.add_dynamic_path(path, handler, method, model)
         else:
-            self.add_static_path(path, handler, method)
+            self.add_static_path(path, handler, method, model)
 
-    def add_static_path(self, path : str, handler : callable, method : HTTPMethods) -> None:
-        self.static_paths.append(Path(path, handler, method))
+    def add_static_path(self, path : str, handler : callable, method : HTTPMethods, model : BaseModel) -> None:
+        self.static_paths.append(Path(path, handler, method, model=model))
 
-    def add_dynamic_path(self, path : str, handler : callable, method : HTTPMethods) -> None:
-        self.dynamic_paths.append(Path(path, handler, method, dynamic=True))
+    def add_dynamic_path(self, path : str, handler : callable, method : HTTPMethods, model : BaseModel) -> None:
+        self.dynamic_paths.append(Path(path, handler, method, dynamic=True, model=model))
 
     def get_path(self, path : str, method : HTTPMethods) -> Tuple[PathTypes, Path, Dict[str, Any]]:
         path = path.rstrip("/").lstrip("/")
